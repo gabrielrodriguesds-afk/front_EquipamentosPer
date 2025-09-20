@@ -3,6 +3,14 @@ import 'utils/app_theme.dart';
 import 'screens/home_screen.dart';
 import 'screens/cadastro_tipo_screen.dart';
 import 'test_api.dart';
+import 'screens/listagem_screen.dart';
+import 'screens/usuarios_screen.dart';
+import 'screens/clientes_screen.dart';
+import 'screens/cadastro_screen.dart';
+import 'screens/cadastro_cliente_screen.dart';
+import 'screens/cadastro_usuario_screen.dart';
+import 'screens/cadastro_computador_screen.dart';
+import 'screens/cadastro_nobreak_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +31,14 @@ class MyApp extends StatelessWidget {
         '/': (context) => const HomeScreen(),
         '/cadastro-tipo': (context) => const CadastroTipoScreen(),
         '/test-api': (context) => TestApiScreen(),
+        '/listagem': (context) => const ListagemScreen(),
+        '/usuarios': (context) => const UsuariosScreen(),
+        '/clientes': (context) => const ClientesScreen(),
+        '/cadastro': (context) => const CadastroScreen(),
+        '/cadastro/cliente': (context) => const CadastroClienteScreen(),
+        '/cadastro/usuario': (context) => const CadastroUsuarioScreen(),
+        '/cadastro/computador': (context) => const CadastroComputadorScreen(),
+        '/cadastro/nobreak': (context) => const CadastroNobreakScreen(),
       },
     );
   }
@@ -196,4 +212,5 @@ class HomeScreenWithTest extends StatelessWidget {
     );
   }
 }
+
 

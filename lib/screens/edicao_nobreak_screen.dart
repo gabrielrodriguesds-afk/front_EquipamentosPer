@@ -5,14 +5,16 @@ import '../utils/app_theme.dart';
 import '../services/nobreak_service.dart';
 import '../models/nobreak.dart';
 
-class CadastroNobreakScreen extends StatefulWidget {
-  const CadastroNobreakScreen({Key? key}) : super(key: key);
+class EdicaoNobreakScreen extends StatefulWidget {
+  final Nobreak nobreak;
+
+  const EdicaoNobreakScreen({Key? key, required this.nobreak}) : super(key: key);
 
   @override
-  State<CadastroNobreakScreen> createState() => _CadastroNobreakScreenState();
+  State<EdicaoNobreakScreen> createState() => _EdicaoNobreakScreenState();
 }
 
-class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
+class _EdicaoNobreakScreenState extends State<EdicaoNobreakScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _clienteIdController = TextEditingController();
   final TextEditingController _marcaController = TextEditingController();
@@ -25,6 +27,30 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
   final TextEditingController _observacaoController = TextEditingController();
 
   DateTime? _selectedDataBateria;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _preencherCampos();
+  }
+
+  void _preencherCampos() {
+    _clienteIdController.text = widget.nobreak.clienteId;
+    _marcaController.text = widget.nobreak.marca;
+    _modeloController.text = widget.nobreak.modelo;
+    _serialController.text = widget.nobreak.numeroSerie;
+    
+    if (widget.nobreak.dataBateria != null) {
+      _selectedDataBateria = widget.nobreak.dataBateria;
+      _dataBateriaController.text = widget.nobreak.dataBateria!.toIso8601String().split('T')[0];
+    }
+    
+    _modeloBateriaController.text = widget.nobreak.modeloBateria ?? '';
+    _quantidadeBateriasController.text = widget.nobreak.quantidadeBaterias.toString();
+    _setorController.text = widget.nobreak.setor ?? '';
+    _observacaoController.text = widget.nobreak.observacao ?? '';
+  }
 
   Future<void> _selectDataBateria(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -36,7 +62,7 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
     if (picked != null && picked != _selectedDataBateria) {
       setState(() {
         _selectedDataBateria = picked;
-        _dataBateriaController.text = picked.toIso8601String().split('T')[0]; // Formato YYYY-MM-DD
+        _dataBateriaController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
@@ -55,61 +81,28 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
     super.dispose();
   }
 
-  void _showCodigoModal(String codigo) {
+  void _showSucessoModal() {
     showDialog(
       context: context,
-      barrierDismissible: false, // Não permite fechar clicando fora
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Row(
             children: [
               Icon(Icons.check_circle, color: Colors.green, size: 30),
               SizedBox(width: 10),
-              Text('Nobreak Cadastrado!'),
+              Text('Nobreak Atualizado!'),
             ],
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'Nobreak cadastrado com sucesso!',
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Código do Equipamento:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      codigo,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          content: const Text(
+            'Nobreak atualizado com sucesso!',
+            style: TextStyle(fontSize: 16),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Fecha o modal
+                Navigator.of(context).pop(true); // Volta para a lista com indicação de atualização
               },
               child: const Text('OK'),
             ),
@@ -121,7 +114,11 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final nobreak = Nobreak.novo(
+      setState(() {
+        _isLoading = true;
+      });
+
+      final nobreakAtualizado = Nobreak.novo(
         clienteId: _clienteIdController.text,
         marca: _marcaController.text,
         modelo: _modeloController.text,
@@ -134,25 +131,20 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
       );
 
       try {
-        final nobreakCriado = await NobreakService.criarNobreak(nobreak);
+        await NobreakService.atualizarNobreak(widget.nobreak.id, nobreakAtualizado);
         
-        // Limpar os campos
-        _clienteIdController.clear();
-        _marcaController.clear();
-        _modeloController.clear();
-        _serialController.clear();
-        _dataBateriaController.clear();
-        _selectedDataBateria = null;
-        _modeloBateriaController.clear();
-        _quantidadeBateriasController.clear();
-        _setorController.clear();
-        _observacaoController.clear();
+        setState(() {
+          _isLoading = false;
+        });
         
-        // Exibir modal com o código
-        _showCodigoModal(nobreakCriado.codigo);
+        _showSucessoModal();
       } catch (e) {
+        setState(() {
+          _isLoading = false;
+        });
+        
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao cadastrar nobreak: $e')),
+          SnackBar(content: Text('Erro ao atualizar nobreak: $e')),
         );
       }
     }
@@ -161,7 +153,9 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Cadastro de Nobreak'),
+      appBar: CustomAppBar(
+        title: 'Editar Nobreak ${widget.nobreak.codigo}',
+      ),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -180,16 +174,52 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
               key: _formKey,
               child: ListView(
                 children: [
-                  const Text(
-                    'Preencha os dados do novo nobreak',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
+                  // Cabeçalho com informações do nobreak
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.edit, color: AppTheme.primaryGreen),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Editando Nobreak',
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.primaryGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryGreen,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            'Código: ${widget.nobreak.codigo}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 24),
+                  
+                  // Formulário
                   ClienteDropdown(
                     selectedClienteId: _clienteIdController.text.isEmpty ? null : _clienteIdController.text,
                     onChanged: (newValue) {
@@ -296,9 +326,18 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
                   ),
                   const SizedBox(height: 32),
                   ElevatedButton.icon(
-                    onPressed: _submitForm,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Salvar Nobreak'),
+                    onPressed: _isLoading ? null : _submitForm,
+                    icon: _isLoading 
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Icon(Icons.save),
+                    label: Text(_isLoading ? 'Salvando...' : 'Salvar Alterações'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryGreen,
                       foregroundColor: Colors.white,

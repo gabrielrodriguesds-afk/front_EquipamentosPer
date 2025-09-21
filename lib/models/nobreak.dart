@@ -110,7 +110,7 @@ class Nobreak {
       'modelo_bateria': modeloBateria,
       'quantidade_baterias': quantidadeBaterias,
       'setor': setor,
-      'observacao': observacao,
+      'observacoes': observacao,
       'foto_url': fotoUrl,
     };
   }
@@ -167,4 +167,3 @@ class Nobreak {
   @override
   int get hashCode => id.hashCode;
 }
-

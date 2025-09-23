@@ -39,6 +39,7 @@ class MyApp extends StatelessWidget {
         '/cadastro/usuario': (context) => const CadastroUsuarioScreen(),
         '/cadastro/computador': (context) => const CadastroComputadorScreen(),
         '/cadastro/nobreak': (context) => const CadastroNobreakScreen(),
+        '/listagem-nobreaks': (context) => const ListagemNobreaksScreen(),
       },
     );
   }

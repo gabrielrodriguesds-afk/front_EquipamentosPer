@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   // URL base da API Flask
-  static const String baseUrl = 'http://192.168.1.45:5000/api';
+  static const String baseUrl = 'http://189.91.141.245:5000/api';
   
   // Headers padrão
   static const Map<String, String> headers = {

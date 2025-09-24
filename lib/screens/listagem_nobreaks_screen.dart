@@ -122,14 +122,14 @@ class _ListagemNobreaksScreenState extends State<ListagemNobreaksScreen> {
             ),
             
             // Informações adicionais se disponíveis
-            if (nobreak.setor != null) ...[
+            if (nobreak.modeloBateria != null) ...[
               const SizedBox(height: 8),
               Row(
                 children: [
-                  const Icon(Icons.business_center_outlined, size: 16, color: Colors.grey),
+                  const Icon(Icons.battery_full, size: 16, color: Colors.grey),
                   const SizedBox(width: 8),
                   Text(
-                    'Setor: ${nobreak.setor}',
+                    'Modelo Bateria: ${nobreak.modeloBateria}',
                     style: const TextStyle(fontSize: 14),
                   ),
                 ],

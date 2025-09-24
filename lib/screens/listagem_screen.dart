@@ -56,11 +56,7 @@ class ListagemScreen extends StatelessWidget {
                   subtitle: 'Ver todos os computadores cadastrados',
                   icon: Icons.computer_outlined,
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Listagem de computadores em desenvolvimento'),
-                      ),
-                    );
+                    Navigator.pushNamed(context, '/listagem-computadores');
                   },
                 ),
               ],

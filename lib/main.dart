@@ -11,7 +11,10 @@ import 'screens/cadastro_cliente_screen.dart';
 import 'screens/cadastro_usuario_screen.dart';
 import 'screens/cadastro_computador_screen.dart';
 import 'screens/cadastro_nobreak_screen.dart';
-
+import 'screens/listagem_nobreaks_screen.dart';
+import 'screens/listagem_computadores_screen.dart';
+//import 'screens/detalhes_computador_screen.dart';
+//import 'screens/edicao_computador_screen.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   runApp(const MyApp());
@@ -40,6 +43,8 @@ class MyApp extends StatelessWidget {
         '/cadastro/computador': (context) => const CadastroComputadorScreen(),
         '/cadastro/nobreak': (context) => const CadastroNobreakScreen(),
         '/listagem-nobreaks': (context) => const ListagemNobreaksScreen(),
+        '/listagem-computadores': (context) => const ListagemComputadoresScreen(),
+        //'/detalhes-computador': (context) => const DetalhesComputadorScreen(),
       },
     );
   }

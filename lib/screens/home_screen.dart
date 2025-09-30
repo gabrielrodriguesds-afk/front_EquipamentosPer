@@ -66,67 +66,72 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 32),
-                
-                // Menu principal
-                const Text(
-                  'O que você deseja fazer?',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textPrimary,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                
-                const SizedBox(height: 24),
-                
+
                 // Botões de ação principal
                 Expanded(
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.1,
-                    children: [
-                      _buildMenuCard(
-                        context,
-                        icon: Icons.add_circle,
-                        title: 'Cadastrar',
-                        subtitle: 'Novo equipamento',
-                        color: AppTheme.primaryGreen,
-                        onTap: () => Navigator.pushNamed(context, 
-'/cadastro-tipo'),
-                      ),
-                      _buildMenuCard(
-                        context,
-                        icon: Icons.list,
-                        title: 'Listar',
-                        subtitle: 'Ver equipamentos',
-                        color: AppTheme.accentGreen,                        onTap: () => Navigator.pushNamed(context, '/listagem'),                      ),
-                      _buildMenuCard(
-                        context,
-                        icon: Icons.people,
-                        title: 'Clientes',
-                        subtitle: 'Gerenciar clientes',
-                        color: AppTheme.darkGreen,
-                        onTap: () => Navigator.pushNamed(context, '/clientes'),
-                      ),
-                      _buildMenuCard(
-                        context,
-                        icon: Icons.person,
-                        title: 'Usuários',
-                        subtitle: 'Gerenciar usuários',
-                        color: AppTheme.lightGreen,
-                        onTap: () => Navigator.pushNamed(context, '/usuarios'),
-                      ),
-                    ],
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Ajusta o aspecto dinamicamente
+                      double itemWidth = constraints.maxWidth / 2;
+                      double itemHeight = (constraints.maxHeight / 2);
+                      double aspectRatio = itemWidth / itemHeight;
+
+                      return GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        childAspectRatio: aspectRatio * 1.1,
+                        children: [
+                          _buildMenuCard(
+                            context,
+                            icon: Icons.add_circle,
+                            title: 'Cadastrar',
+                            subtitle: 'Novo equipamento',
+                            color: AppTheme.primaryGreen,
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/cadastro-tipo',
+                            ),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            icon: Icons.list,
+                            title: 'Listar',
+                            subtitle: 'Ver equipamentos',
+                            color: AppTheme.accentGreen,
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/listagem'),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            icon: Icons.people,
+                            title: 'Clientes',
+                            subtitle: 'Gerenciar clientes',
+                            color: AppTheme.darkGreen,
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/cadastro/cliente',
+                            ),
+                          ),
+                          _buildMenuCard(
+                            context,
+                            icon: Icons.person,
+                            title: 'Usuários',
+                            subtitle: 'Gerenciar usuários',
+                            color: AppTheme.lightGreen,
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/usuarios'),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
-                
+
                 const SizedBox(height: 24),
-                
+
                 // Estatísticas rápidas
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -235,10 +240,12 @@ class HomeScreen extends StatelessWidget {
               Text(
                 subtitle,
                 style: const TextStyle(
-                  fontSize: 12,
+                  fontSize: 13,
                   color: AppTheme.textSecondary,
                 ),
                 textAlign: TextAlign.center,
+                softWrap: true,
+                overflow: TextOverflow.visible,
               ),
             ],
           ),
@@ -280,4 +287,3 @@ class HomeScreen extends StatelessWidget {
     );
   }
 }
-

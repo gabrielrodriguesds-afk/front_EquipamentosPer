@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Permite seu IP público -->
+        <domain includeSubdomains="true">acesso.perinformatica.com.br</domain>
+    </domain-config>
+    <!-- fallback para qualquer domínio/IP -->
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

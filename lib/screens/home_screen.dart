@@ -110,10 +110,7 @@ class HomeScreen extends StatelessWidget {
                             title: 'Clientes',
                             subtitle: 'Gerenciar clientes',
                             color: AppTheme.darkGreen,
-                            onTap: () => Navigator.pushNamed(
-                              context,
-                              '/cadastro/cliente',
-                            ),
+                            onTap: () => Navigator.pushNamed(context, '/clientes'),
                           ),
                           _buildMenuCard(
                             context,

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import '../utils/app_theme.dart';
-import '../services/computador_service.dart';
-import '../models/computador.dart';
-// import 'detalhes_computador_screen.dart'; // Removido temporariamente
+import '../services/computador_service.dart'; // Certifique-se que este arquivo existe
+import '../models/computador.dart'; // Certifique-se que este arquivo existe
 
 class ListagemComputadoresScreen extends StatefulWidget {
   const ListagemComputadoresScreen({Key? key}) : super(key: key);
@@ -13,14 +12,24 @@ class ListagemComputadoresScreen extends StatefulWidget {
 }
 
 class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen> {
-  List<Computador> _computadores = [];
+  // Listas para controle de dados e filtro
+  List<Computador> _todosComputadores = [];
+  List<Computador> _computadoresFiltrados = [];
+  
   bool _isLoading = true;
   String? _errorMessage;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _carregarComputadores();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   Future<void> _carregarComputadores() async {
@@ -30,10 +39,17 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
         _errorMessage = null;
       });
 
+      // Chama o serviço de computadores
       final computadores = await ComputadorService.listarComputadores();
       
+      // ORDENAÇÃO: Garante que fique P0001, P0002, etc.
+      computadores.sort((a, b) {
+        return a.codigo.compareTo(b.codigo);
+      });
+      
       setState(() {
-        _computadores = computadores;
+        _todosComputadores = computadores;
+        _computadoresFiltrados = computadores;
         _isLoading = false;
       });
     } catch (e) {
@@ -44,7 +60,30 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
     }
   }
 
+  // Lógica de Pesquisa
+  void _filtrarComputadores(String query) {
+    if (query.isEmpty) {
+      setState(() {
+        _computadoresFiltrados = _todosComputadores;
+      });
+    } else {
+      final filtro = query.toLowerCase();
+      setState(() {
+        _computadoresFiltrados = _todosComputadores.where((computador) {
+          final codigo = computador.codigo.toLowerCase();
+          final cliente = (computador.clienteNome ?? '').toLowerCase();
+          final serial = computador.numeroSerie.toLowerCase();
+          
+          return codigo.contains(filtro) || 
+                 cliente.contains(filtro) ||
+                 serial.contains(filtro);
+        }).toList();
+      });
+    }
+  }
+
   Future<void> _recarregarComputadores() async {
+    _searchController.clear();
     await _carregarComputadores();
   }
 
@@ -56,18 +95,13 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () async {
-          // Removido temporariamente a navegação para DetalhesComputadorScreen
-          // final result = await Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) => DetalhesComputadorScreen(computador: computador),
-          //   ),
-          // );
-          
-          // if (result == true) {
-          //   _recarregarComputadores();
-          // }
+        onTap: () {
+           // Rota para detalhes (ajuste se o nome da rota for diferente)
+           Navigator.pushNamed(
+            context,
+            '/detalhes-computador',
+            arguments: computador,
+          ).then((_) => _recarregarComputadores());
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -81,11 +115,12 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen,
+                      // Pode usar outra cor para diferenciar de Nobreaks, ex: Blue
+                      color: Colors.blue[700], 
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      computador.codigo,
+                      computador.codigo, // Ex: P0001
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -109,10 +144,10 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
               ),
               const SizedBox(height: 12),
               
-              // Informações principais
+              // Marca e Modelo
               Row(
                 children: [
-                  const Icon(Icons.business_outlined, size: 16, color: Colors.grey),
+                  const Icon(Icons.computer, size: 16, color: Colors.grey),
                   const SizedBox(width: 8),
                   Text(
                     '${computador.marca} ${computador.modelo}',
@@ -125,6 +160,7 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
               ),
               const SizedBox(height: 8),
               
+              // Número de Série
               Row(
                 children: [
                   const Icon(Icons.qr_code_outlined, size: 16, color: Colors.grey),
@@ -135,54 +171,6 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
                   ),
                 ],
               ),
-              
-              // Informações adicionais se disponíveis
-              if (computador.setor != null && computador.setor!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.business_center_outlined, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Setor: ${computador.setor}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
-              
-              if (computador.operador != null && computador.operador!.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 16, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Operador: ${computador.operador}',
-                      style: const TextStyle(fontSize: 14),
-                    ),
-                  ],
-                ),
-              ],
-            
-              if (computador.observacao != null && computador.observacao!.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text(
-                    computador.observacao!,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontStyle: FontStyle.italic,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -193,7 +181,7 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const CustomAppBar(title: 'Computadores Cadastrados'),
+      appBar: const CustomAppBar(title: 'Computadores'),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -205,106 +193,107 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
             ],
           ),
         ),
-        child: RefreshIndicator(
-          onRefresh: _recarregarComputadores,
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryGreen),
+        child: Column(
+          children: [
+            // Área de Pesquisa
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: AppTheme.backgroundColor,
+              child: Material(
+                elevation: 2,
+                borderRadius: BorderRadius.circular(30),
+                shadowColor: Colors.black.withOpacity(0.3),
+                child: TextField(
+                  controller: _searchController,
+                  onChanged: _filtrarComputadores,
+                  decoration: InputDecoration(
+                    hintText: 'Pesquisar código, cliente ou série...',
+                    prefixIcon: Icon(Icons.search, color: Colors.blue[700]),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _filtrarComputadores('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(30),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
                   ),
-                )
-              : _errorMessage != null
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            _errorMessage!,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _recarregarComputadores,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Tentar Novamente'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryGreen,
-                              foregroundColor: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : _computadores.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.computer,
-                                size: 64,
-                                color: Colors.grey,
-                              ),
-                              const SizedBox(height: 16),
-                              const Text(
-                                'Nenhum computador cadastrado',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              const Text(
-                                'Cadastre o primeiro computador para vê-lo aqui',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pushNamed(context, '/cadastro-computador');
-                                },
-                                icon: const Icon(Icons.add),
-                                label: const Text('Cadastrar Computador'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryGreen,
-                                  foregroundColor: Colors.white,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          itemCount: _computadores.length,
-                          itemBuilder: (context, index) {
-                            return _buildComputadorCard(_computadores[index]);
-                          },
+                ),
+              ),
+            ),
+
+            // Lista de Resultados
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _recarregarComputadores,
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[700]!),
                         ),
+                      )
+                    : _errorMessage != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                                const SizedBox(height: 16),
+                                Text(
+                                  _errorMessage!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(fontSize: 16),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _recarregarComputadores,
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Tentar Novamente'),
+                                ),
+                              ],
+                            ),
+                          )
+                        : _computadoresFiltrados.isEmpty
+                            ? Center(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const SizedBox(height: 60),
+                                      const Icon(Icons.desktop_windows_outlined, size: 64, color: Colors.grey),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        _todosComputadores.isEmpty 
+                                            ? 'Nenhum computador cadastrado'
+                                            : 'Nenhum computador encontrado',
+                                        style: const TextStyle(fontSize: 16, color: Colors.grey),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: const EdgeInsets.only(bottom: 20),
+                                itemCount: _computadoresFiltrados.length,
+                                itemBuilder: (context, index) {
+                                  return _buildComputadorCard(_computadoresFiltrados[index]);
+                                },
+                              ),
+              ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/cadastro-computador').then((_) {
-            // Recarregar a lista quando voltar da tela de cadastro
-            _recarregarComputadores();
-          });
-        },
-        backgroundColor: AppTheme.primaryGreen,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
+      // Botão removido aqui também conforme padrão da tela anterior.
+      // Se quiser adicionar de volta, insira o floatingActionButton aqui.
     );
   }
 }
-
-

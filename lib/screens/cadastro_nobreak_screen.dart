@@ -25,6 +25,7 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
   final TextEditingController _observacaoController = TextEditingController();
 
   DateTime? _selectedDataBateria;
+  bool _isLoading = false; // Adicionado loading state
 
   Future<void> _selectDataBateria(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -36,7 +37,7 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
     if (picked != null && picked != _selectedDataBateria) {
       setState(() {
         _selectedDataBateria = picked;
-        _dataBateriaController.text = picked.toIso8601String().split('T')[0]; // Formato YYYY-MM-DD
+        _dataBateriaController.text = picked.toIso8601String().split('T')[0];
       });
     }
   }
@@ -58,23 +59,16 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
   void _showCodigoModal(String codigo) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Não permite fechar clicando fora
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green, size: 30),
-              SizedBox(width: 10),
-              Text('Nobreak Cadastrado!'),
-            ],
+            children: [Icon(Icons.check_circle, color: Colors.green, size: 30), SizedBox(width: 10), Text('Nobreak Cadastrado!')],
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'Nobreak cadastrado com sucesso!',
-                style: TextStyle(fontSize: 16),
-              ),
+              const Text('Nobreak cadastrado com sucesso!', style: TextStyle(fontSize: 16)),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -85,34 +79,16 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Código do Equipamento:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    const Text('Código do Equipamento:', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
-                    Text(
-                      codigo,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
+                    Text(codigo, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
                   ],
                 ),
               ),
             ],
           ),
           actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('OK'),
-            ),
+            TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('OK')),
           ],
         );
       },
@@ -121,39 +97,70 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
 
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      final nobreak = Nobreak.novo(
-        clienteId: _clienteIdController.text,
-        marca: _marcaController.text,
-        modelo: _modeloController.text,
-        numeroSerie: _serialController.text,
-        dataBateria: _selectedDataBateria,
-        modeloBateria: _modeloBateriaController.text.isEmpty ? null : _modeloBateriaController.text,
-        quantidadeBaterias: int.tryParse(_quantidadeBateriasController.text) ?? 1,
-        setor: _setorController.text.isEmpty ? null : _setorController.text,
-        observacao: _observacaoController.text.isEmpty ? null : _observacaoController.text,
-      );
+      setState(() => _isLoading = true);
 
       try {
+        // 1. VALIDAÇÃO DE SERIAL
+        final serialDigitado = _serialController.text.trim();
+        final listaExistente = await NobreakService.listarNobreaks();
+        final jaExiste = listaExistente.any((n) => n.numeroSerie.toLowerCase() == serialDigitado.toLowerCase());
+
+        if (jaExiste) {
+          if (!mounted) return;
+          setState(() => _isLoading = false);
+
+          final confirm = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Row(children: [Icon(Icons.warning_amber, color: Colors.orange), SizedBox(width: 10), Text("Atenção")]),
+              content: Text("O número de série '$serialDigitado' já existe.\n\nDeseja cadastrar mesmo assim?"),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Não")),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text("Sim", style: TextStyle(color: Colors.red))),
+              ],
+            ),
+          );
+
+          if (confirm != true) return;
+          setState(() => _isLoading = true);
+        }
+
+        // 2. CRIAÇÃO E ENVIO
+        final nobreak = Nobreak.novo(
+          clienteId: _clienteIdController.text,
+          marca: _marcaController.text,
+          modelo: _modeloController.text,
+          numeroSerie: _serialController.text,
+          dataBateria: _selectedDataBateria,
+          modeloBateria: _modeloBateriaController.text.isEmpty ? null : _modeloBateriaController.text,
+          quantidadeBaterias: int.tryParse(_quantidadeBateriasController.text) ?? 1,
+          setor: _setorController.text.isEmpty ? null : _setorController.text,
+          observacao: _observacaoController.text.isEmpty ? null : _observacaoController.text,
+        );
+
         final nobreakCriado = await NobreakService.criarNobreak(nobreak);
         
-        // Limpar os campos
-        _clienteIdController.clear();
-        _marcaController.clear();
-        _modeloController.clear();
-        _serialController.clear();
-        _dataBateriaController.clear();
-        _selectedDataBateria = null;
-        _modeloBateriaController.clear();
-        _quantidadeBateriasController.clear();
-        _setorController.clear();
-        _observacaoController.clear();
-        
-        // Exibir modal com o código
-        _showCodigoModal(nobreakCriado.codigo);
+        if (mounted) {
+          _clienteIdController.clear();
+          _marcaController.clear();
+          _modeloController.clear();
+          _serialController.clear();
+          _dataBateriaController.clear();
+          _selectedDataBateria = null;
+          _modeloBateriaController.clear();
+          _quantidadeBateriasController.clear();
+          _setorController.clear();
+          _observacaoController.clear();
+          _showCodigoModal(nobreakCriado.codigo);
+        }
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao cadastrar nobreak: $e')),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isLoading = false);
       }
     }
   }
@@ -167,10 +174,7 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.backgroundColor,
-              Colors.white,
-            ],
+            colors: [AppTheme.backgroundColor, Colors.white],
           ),
         ),
         child: SafeArea(
@@ -180,133 +184,84 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
               key: _formKey,
               child: ListView(
                 children: [
-                  const Text(
-                    'Preencha os dados do novo nobreak',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
+                  const Text('Preencha os dados do novo nobreak', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppTheme.textPrimary), textAlign: TextAlign.center),
                   const SizedBox(height: 24),
+                  
                   ClienteDropdown(
                     selectedClienteId: _clienteIdController.text.isEmpty ? null : _clienteIdController.text,
-                    onChanged: (newValue) {
-                      setState(() {
-                        _clienteIdController.text = newValue ?? '';
-                      });
-                    },
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, selecione um cliente';
-                      }
-                      return null;
-                    },
+                    onChanged: (newValue) => setState(() => _clienteIdController.text = newValue ?? ''),
+                    validator: (value) => (value == null || value.isEmpty) ? 'Por favor, selecione um cliente' : null,
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _marcaController,
-                    decoration: const InputDecoration(
-                      hintText: 'Marca',
-                      prefixIcon: Icon(Icons.business_outlined),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira a marca';
-                      }
-                      return null;
-                    },
+                    decoration: const InputDecoration(hintText: 'Marca', prefixIcon: Icon(Icons.business_outlined)),
+                    validator: (value) => (value == null || value.isEmpty) ? 'Insira a marca' : null,
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _modeloController,
-                    decoration: const InputDecoration(
-                      hintText: 'Modelo',
-                      prefixIcon: Icon(Icons.power_outlined),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira o modelo';
-                      }
-                      return null;
-                    },
+                    decoration: const InputDecoration(hintText: 'Modelo', prefixIcon: Icon(Icons.power_outlined)),
+                    validator: (value) => (value == null || value.isEmpty) ? 'Insira o modelo' : null,
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _serialController,
-                    decoration: const InputDecoration(
-                      hintText: 'Número de Série',
-                      prefixIcon: Icon(Icons.qr_code_outlined),
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Por favor, insira o número de série';
-                      }
-                      return null;
-                    },
+                    decoration: const InputDecoration(hintText: 'Número de Série', prefixIcon: Icon(Icons.qr_code_outlined)),
+                    validator: (value) => (value == null || value.isEmpty) ? 'Insira o número de série' : null,
                   ),
                   const SizedBox(height: 16),
+                  
                   GestureDetector(
                     onTap: () => _selectDataBateria(context),
                     child: AbsorbPointer(
                       child: TextFormField(
                         controller: _dataBateriaController,
-                        decoration: const InputDecoration(
-                          hintText: 'Data da Bateria (opcional)',
-                          prefixIcon: Icon(Icons.calendar_today_outlined),
-                          suffixIcon: Icon(Icons.arrow_drop_down),
-                        ),
+                        decoration: const InputDecoration(hintText: 'Data da Bateria', prefixIcon: Icon(Icons.calendar_today_outlined), suffixIcon: Icon(Icons.arrow_drop_down)),
                       ),
                     ),
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _modeloBateriaController,
-                    decoration: const InputDecoration(
-                      hintText: 'Modelo da Bateria (opcional)',
-                      prefixIcon: Icon(Icons.battery_charging_full_outlined),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Modelo da Bateria', prefixIcon: Icon(Icons.battery_charging_full_outlined)),
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _quantidadeBateriasController,
-                    decoration: const InputDecoration(
-                      hintText: 'Quantidade de Baterias (opcional, padrão 1)',
-                      prefixIcon: Icon(Icons.format_list_numbered_outlined),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Qtd. Baterias (padrão 1)', prefixIcon: Icon(Icons.format_list_numbered_outlined)),
                     keyboardType: TextInputType.number,
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _setorController,
-                    decoration: const InputDecoration(
-                      hintText: 'Setor (opcional)',
-                      prefixIcon: Icon(Icons.business_center_outlined),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Setor', prefixIcon: Icon(Icons.business_center_outlined)),
                   ),
                   const SizedBox(height: 16),
+                  
                   TextFormField(
                     controller: _observacaoController,
-                    decoration: const InputDecoration(
-                      hintText: 'Observações (opcional)',
-                      prefixIcon: Icon(Icons.notes_outlined),
-                    ),
+                    decoration: const InputDecoration(hintText: 'Observações', prefixIcon: Icon(Icons.notes_outlined)),
                     maxLines: 3,
                   ),
                   const SizedBox(height: 32),
+                  
                   ElevatedButton.icon(
-                    onPressed: _submitForm,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Salvar Nobreak'),
+                    onPressed: _isLoading ? null : _submitForm,
+                    icon: _isLoading ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Icon(Icons.save),
+                    label: Text(_isLoading ? ' Verificando...' : 'Salvar Nobreak'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryGreen,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       textStyle: const TextStyle(fontSize: 18),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ],
@@ -318,4 +273,3 @@ class _CadastroNobreakScreenState extends State<CadastroNobreakScreen> {
     );
   }
 }
-

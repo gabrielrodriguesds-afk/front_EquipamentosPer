@@ -2,9 +2,58 @@ import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
 import '../widgets/custom_app_bar.dart';
 import '../widgets/custom_button.dart';
+// Importe os serviços para buscar os dados
+import '../services/computador_service.dart';
+import '../services/nobreak_service.dart';
+import '../services/cliente_service.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Variáveis para armazenar as quantidades
+  int _qtdComputadores = 0;
+  int _qtdNobreaks = 0;
+  int _qtdClientes = 0;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarEstatisticas();
+  }
+
+  // Função para buscar os dados das APIs
+  Future<void> _carregarEstatisticas() async {
+    try {
+      // Busca todas as listas simultaneamente para ser mais rápido
+      final results = await Future.wait([
+        ComputadorService.listarComputadores(),
+        NobreakService.listarNobreaks(),
+        ClienteService.listarClientes(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          _qtdComputadores = results[0].length; // Lista de Computadores
+          _qtdNobreaks = results[1].length;     // Lista de Nobreaks
+          _qtdClientes = results[2].length;     // Lista de Clientes
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        print('Erro ao carregar estatísticas: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,10 +139,11 @@ class HomeScreen extends StatelessWidget {
                             title: 'Cadastrar',
                             subtitle: 'Novo equipamento',
                             color: AppTheme.primaryGreen,
+                            // Atualiza estatísticas ao voltar
                             onTap: () => Navigator.pushNamed(
                               context,
                               '/cadastro-tipo',
-                            ),
+                            ).then((_) => _carregarEstatisticas()),
                           ),
                           _buildMenuCard(
                             context,
@@ -101,8 +151,11 @@ class HomeScreen extends StatelessWidget {
                             title: 'Listar',
                             subtitle: 'Ver equipamentos',
                             color: AppTheme.accentGreen,
-                            onTap: () =>
-                                Navigator.pushNamed(context, '/listagem'),
+                            // Atualiza estatísticas ao voltar (caso apague algo)
+                            onTap: () => Navigator.pushNamed(
+                              context, 
+                              '/listagem'
+                            ).then((_) => _carregarEstatisticas()),
                           ),
                           _buildMenuCard(
                             context,
@@ -110,7 +163,11 @@ class HomeScreen extends StatelessWidget {
                             title: 'Clientes',
                             subtitle: 'Gerenciar clientes',
                             color: AppTheme.darkGreen,
-                            onTap: () => Navigator.pushNamed(context, '/clientes'),
+                            // Atualiza estatísticas ao voltar
+                            onTap: () => Navigator.pushNamed(
+                              context,
+                              '/clientes', // Corrigido para a rota correta de listagem
+                            ).then((_) => _carregarEstatisticas()),
                           ),
                           _buildMenuCard(
                             context,
@@ -118,8 +175,10 @@ class HomeScreen extends StatelessWidget {
                             title: 'Usuários',
                             subtitle: 'Gerenciar usuários',
                             color: AppTheme.lightGreen,
-                            onTap: () =>
-                                Navigator.pushNamed(context, '/usuarios'),
+                            onTap: () => Navigator.pushNamed(
+                              context, 
+                              '/usuarios'
+                            ),
                           ),
                         ],
                       );
@@ -137,39 +196,41 @@ class HomeScreen extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: AppTheme.cardShadow,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildStatItem(
-                        icon: Icons.computer,
-                        label: 'Computadores',
-                        value: '0', // TODO: Implementar contagem real
-                        color: AppTheme.primaryGreen,
+                  child: _isLoading 
+                    ? const Center(child: CircularProgressIndicator()) 
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
+                        children: [
+                          _buildStatItem(
+                            icon: Icons.computer,
+                            label: 'Computadores',
+                            value: _qtdComputadores.toString(), // Valor dinâmico
+                            color: AppTheme.primaryGreen,
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: Colors.grey[300],
+                          ),
+                          _buildStatItem(
+                            icon: Icons.power,
+                            label: 'Nobreaks',
+                            value: _qtdNobreaks.toString(), // Valor dinâmico
+                            color: AppTheme.accentGreen,
+                          ),
+                          Container(
+                            height: 40,
+                            width: 1,
+                            color: Colors.grey[300],
+                          ),
+                          _buildStatItem(
+                            icon: Icons.business,
+                            label: 'Clientes',
+                            value: _qtdClientes.toString(), // Valor dinâmico
+                            color: AppTheme.darkGreen,
+                          ),
+                        ],
                       ),
-                      Container(
-                        height: 40,
-                        width: 1,
-                        color: Colors.grey[300],
-                      ),
-                      _buildStatItem(
-                        icon: Icons.power,
-                        label: 'Nobreaks',
-                        value: '0', // TODO: Implementar contagem real
-                        color: AppTheme.accentGreen,
-                      ),
-                      Container(
-                        height: 40,
-                        width: 1,
-                        color: Colors.grey[300],
-                      ),
-                      _buildStatItem(
-                        icon: Icons.business,
-                        label: 'Clientes',
-                        value: '0', // TODO: Implementar contagem real
-                        color: AppTheme.darkGreen,
-                      ),
-                    ],
-                  ),
                 ),
               ],
             ),

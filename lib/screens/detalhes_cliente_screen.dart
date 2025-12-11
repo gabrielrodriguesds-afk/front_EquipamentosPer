@@ -1,34 +1,34 @@
 import 'package:flutter/material.dart';
 import '../utils/app_theme.dart';
-import '../models/nobreak.dart';
-import '../services/nobreak_service.dart';
-import 'edicao_nobreak_screen.dart';
+import '../models/cliente.dart';
+import '../services/cliente_service.dart';
+import 'edicao_cliente_screen.dart';
 
-class DetalhesNobreakScreen extends StatefulWidget {
-  final Nobreak nobreak;
+class DetalhesClienteScreen extends StatefulWidget {
+  final Cliente cliente;
 
-  const DetalhesNobreakScreen({Key? key, required this.nobreak}) : super(key: key);
+  const DetalhesClienteScreen({Key? key, required this.cliente}) : super(key: key);
 
   @override
-  State<DetalhesNobreakScreen> createState() => _DetalhesNobreakScreenState();
+  State<DetalhesClienteScreen> createState() => _DetalhesClienteScreenState();
 }
 
-class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
-  late Nobreak _nobreak;
+class _DetalhesClienteScreenState extends State<DetalhesClienteScreen> {
+  late Cliente _cliente;
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _nobreak = widget.nobreak;
+    _cliente = widget.cliente;
   }
 
-  Future<void> _deletarNobreak() async {
+  Future<void> _deletarCliente() async {
     setState(() => _isLoading = true);
     try {
-      await NobreakService.deletarNobreak(_nobreak.id);
+      await ClienteService.deletarCliente(_cliente.id);
       if (mounted) {
-        Navigator.pop(context, true);
+        Navigator.pop(context, true); // Retorna true para atualizar a lista
       }
     } catch (e) {
       if (mounted) {
@@ -44,14 +44,14 @@ class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Excluir Nobreak?'),
-        content: Text('Deseja realmente excluir o nobreak ${_nobreak.codigo}?'),
+        title: const Text('Excluir Cliente?'),
+        content: Text('Deseja realmente excluir o cliente ${_cliente.nome}?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancelar')),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _deletarNobreak();
+              _deletarCliente();
             },
             child: const Text('Excluir', style: TextStyle(color: Colors.red)),
           ),
@@ -64,7 +64,7 @@ class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${_nobreak.marca} ${_nobreak.modelo}'),
+        title: const Text('Detalhes do Cliente'),
         backgroundColor: AppTheme.primaryGreen,
         foregroundColor: Colors.white,
         actions: [
@@ -81,20 +81,14 @@ class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   _buildHeader(),
-                   const SizedBox(height: 20),
-                  _buildInfoTile('Código', _nobreak.codigo),
-                  _buildInfoTile('Cliente', _nobreak.clienteNome ?? 'Não informado'),
+                  _buildHeader(),
+                  const SizedBox(height: 20),
+                  _buildInfoTile('Nome Completo', _cliente.nome),
                   const Divider(),
-                  _buildInfoTile('Número de Série', _nobreak.numeroSerie),
-                  _buildInfoTile('Modelo Bateria', _nobreak.modeloBateria ?? '-'),
-                  _buildInfoTile('Qtd. Baterias', _nobreak.quantidadeBaterias?.toString() ?? '0'),
-                  _buildInfoTile('Data Troca Bateria', _nobreak.dataBateria != null 
-                      ? '${_nobreak.dataBateria!.day}/${_nobreak.dataBateria!.month}/${_nobreak.dataBateria!.year}'
-                      : '-'),
+                  _buildInfoTile('E-mail', _cliente.email),
+                  _buildInfoTile('Telefone', _cliente.telefone),
                   const Divider(),
-                  _buildInfoTile('Setor', _nobreak.setor),
-                  _buildInfoTile('Observação', _nobreak.observacao, isLongText: true),
+                  _buildInfoTile('Endereço', _cliente.endereco, isLongText: true),
                 ],
               ),
             ),
@@ -105,42 +99,49 @@ class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
           final resultado = await Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => EdicaoNobreakScreen(nobreak: _nobreak),
+              builder: (context) => EdicaoClienteScreen(cliente: _cliente),
             ),
           );
 
-          if (resultado != null && resultado is Nobreak) {
+          if (resultado != null && resultado is Cliente) {
             setState(() {
-              _nobreak = resultado;
+              _cliente = resultado;
             });
           }
         },
       ),
     );
   }
-  
+
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
+        color: AppTheme.primaryGreen.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.battery_charging_full, size: 40, color: Colors.orange),
+          CircleAvatar(
+            radius: 30,
+            backgroundColor: AppTheme.primaryGreen,
+            child: Text(
+              _cliente.nome.isNotEmpty ? _cliente.nome[0].toUpperCase() : '?',
+              style: const TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _nobreak.codigo,
+                  _cliente.nome,
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 Text(
-                  _nobreak.marca,
+                  _cliente.email ?? 'Sem e-mail',
                   style: const TextStyle(color: Colors.grey),
                 ),
               ],
@@ -162,7 +163,7 @@ class _DetalhesNobreakScreenState extends State<DetalhesNobreakScreen> {
           Text(
             (value != null && value.isNotEmpty) ? value : '-',
             style: const TextStyle(fontSize: 16),
-            maxLines: isLongText ? 10 : 1,
+            maxLines: isLongText ? 5 : 1,
             overflow: isLongText ? TextOverflow.visible : TextOverflow.ellipsis,
           ),
         ],

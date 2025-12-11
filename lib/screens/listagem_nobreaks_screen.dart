@@ -3,6 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import '../utils/app_theme.dart';
 import '../services/nobreak_service.dart';
 import '../models/nobreak.dart';
+import 'detalhes_nobreak_screen.dart'; // Importante para a navegação
 
 class ListagemNobreaksScreen extends StatefulWidget {
   const ListagemNobreaksScreen({Key? key}) : super(key: key);
@@ -44,7 +45,6 @@ class _ListagemNobreaksScreenState extends State<ListagemNobreaksScreen> {
       
       // 1. Lógica de Ordenação por Código (N0001, N0002...)
       nobreaks.sort((a, b) {
-        // Compara as strings dos códigos (ex: "N0001" vem antes de "N0002")
         return a.codigo.compareTo(b.codigo);
       });
       
@@ -98,12 +98,18 @@ class _ListagemNobreaksScreenState extends State<ListagemNobreaksScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () {
-           Navigator.pushNamed(
+        onTap: () async {
+           // NAVEGAÇÃO CORRETA PARA DETALHES
+           final result = await Navigator.push(
             context,
-            '/detalhes-nobreak',
-            arguments: nobreak,
-          ).then((_) => _recarregarNobreaks());
+            MaterialPageRoute(
+              builder: (context) => DetalhesNobreakScreen(nobreak: nobreak),
+            ),
+          );
+
+          if (result != null) {
+            _recarregarNobreaks();
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -300,20 +306,17 @@ class _ListagemNobreaksScreenState extends State<ListagemNobreaksScreen> {
                                 ),
                               )
                             : ListView.builder(
-                                padding: const EdgeInsets.only(bottom: 80), // Espaço para o FAB
+                                padding: const EdgeInsets.only(bottom: 80),
                                 itemCount: _nobreaksFiltrados.length,
                                 itemBuilder: (context, index) {
                                   return _buildNobreakCard(_nobreaksFiltrados[index]);
                                 },
                               ),
-            
-),
+              ),
             ),
           ],
         ),
       ),
-      // Botão removido aqui também conforme padrão da tela anterior.
-      // Se quiser adicionar de volta, insira o floatingActionButton aqui.
     );
   }
 }

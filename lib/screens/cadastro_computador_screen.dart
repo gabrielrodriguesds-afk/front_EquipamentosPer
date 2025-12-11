@@ -39,7 +39,7 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
   void _showCodigoModal(String codigo) {
     showDialog(
       context: context,
-      barrierDismissible: false, // Não permite fechar clicando fora
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Row(
@@ -52,10 +52,7 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                "Computador cadastrado com sucesso!",
-                style: TextStyle(fontSize: 16),
-              ),
+              const Text("Computador cadastrado com sucesso!", style: TextStyle(fontSize: 16)),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
@@ -66,22 +63,9 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      "Código do Equipamento:",
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
+                    const Text("Código do Equipamento:", style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
                     const SizedBox(height: 8),
-                    Text(
-                      codigo,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryGreen,
-                      ),
-                    ),
+                    Text(codigo, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.primaryGreen)),
                   ],
                 ),
               ),
@@ -89,9 +73,7 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
               child: const Text("OK"),
             ),
           ],
@@ -101,25 +83,53 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
   }
 
   Future<void> _salvarComputador() async {
-    if (!_formKey.currentState!.validate()) {
-      return;
-    }
+    if (!_formKey.currentState!.validate()) return;
 
     if (_clienteIdController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor, selecione um cliente'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Por favor, selecione um cliente'), backgroundColor: Colors.red),
       );
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
+      // 1. VALIDAÇÃO DE SERIAL REPETIDO
+      final serialDigitado = _serialController.text.trim();
+      
+      // Busca lista atual para verificar duplicidade (pode ser otimizado com endpoint de busca)
+      final listaExistente = await ComputadorService.listarComputadores();
+      final jaExiste = listaExistente.any((c) => c.numeroSerie.toLowerCase() == serialDigitado.toLowerCase());
+
+      if (jaExiste) {
+        if (!mounted) return;
+        setState(() => _isLoading = false); // Para o loading para mostrar o alerta
+
+        // Pergunta ao usuário
+        final confirmar = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Row(children: [Icon(Icons.warning_amber, color: Colors.orange), SizedBox(width: 10), Text("Serial Duplicado")]),
+            content: Text("O número de série '$serialDigitado' já existe cadastrado.\n\nDeseja cadastrar mesmo assim?"),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Não")),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true), 
+                child: const Text("Sim, Cadastrar", style: TextStyle(color: Colors.red)),
+              ),
+            ],
+          ),
+        );
+
+        // Se clicou em Não ou fora, cancela
+        if (confirmar != true) return;
+
+        // Se Sim, continua
+        setState(() => _isLoading = true);
+      }
+
+      // 2. CRIAÇÃO DO OBJETO E ENVIO
       final computador = Computador.novo(
         clienteId: _clienteIdController.text,
         marca: _marcaController.text,
@@ -133,7 +143,6 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
       final computadorCriado = await ComputadorService.criarComputador(computador);
 
       if (mounted) {
-        // Limpar os campos
         _clienteIdController.clear();
         _marcaController.clear();
         _modeloController.clear();
@@ -141,24 +150,17 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
         _setorController.clear();
         _operadorController.clear();
         _observacaoController.clear();
-
-        // Exibir modal com o código
         _showCodigoModal(computadorCriado.codigo);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao cadastrar computador: $e'),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text('Erro: $e'), backgroundColor: Colors.red),
         );
       }
     } finally {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
+        setState(() => _isLoading = false);
       }
     }
   }
@@ -181,12 +183,7 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Cliente',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('Cliente', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 8),
                         ClienteDropdown(
                           onChanged: (clienteId) {
@@ -207,95 +204,45 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          'Informações do Computador',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
+                        Text('Informações do Computador', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold)),
                         const SizedBox(height: 16),
                         
-                        // Marca
                         TextFormField(
                           controller: _marcaController,
-                          decoration: const InputDecoration(
-                            labelText: 'Marca *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.business),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor, informe a marca';
-                            }
-                            return null;
-                          },
+                          decoration: const InputDecoration(labelText: 'Marca *', prefixIcon: Icon(Icons.business)),
+                          validator: (v) => v?.isEmpty == true ? 'Informe a marca' : null,
                         ),
                         const SizedBox(height: 16),
 
-                        // Modelo
                         TextFormField(
                           controller: _modeloController,
-                          decoration: const InputDecoration(
-                            labelText: 'Modelo *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.computer),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor, informe o modelo';
-                            }
-                            return null;
-                          },
+                          decoration: const InputDecoration(labelText: 'Modelo *', prefixIcon: Icon(Icons.computer)),
+                          validator: (v) => v?.isEmpty == true ? 'Informe o modelo' : null,
                         ),
                         const SizedBox(height: 16),
 
-                        // Número de Série
                         TextFormField(
                           controller: _serialController,
-                          decoration: const InputDecoration(
-                            labelText: 'Número de Série *',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.confirmation_number),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Por favor, informe o número de série';
-                            }
-                            return null;
-                          },
+                          decoration: const InputDecoration(labelText: 'Número de Série *', prefixIcon: Icon(Icons.confirmation_number)),
+                          validator: (v) => v?.isEmpty == true ? 'Informe o número de série' : null,
                         ),
                         const SizedBox(height: 16),
 
-                        // Setor
                         TextFormField(
                           controller: _setorController,
-                          decoration: const InputDecoration(
-                            labelText: 'Setor',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.location_on),
-                          ),
+                          decoration: const InputDecoration(labelText: 'Setor', prefixIcon: Icon(Icons.location_on)),
                         ),
                         const SizedBox(height: 16),
 
-                        // Operador
                         TextFormField(
                           controller: _operadorController,
-                          decoration: const InputDecoration(
-                            labelText: 'Operador',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.person),
-                          ),
+                          decoration: const InputDecoration(labelText: 'Operador', prefixIcon: Icon(Icons.person)),
                         ),
                         const SizedBox(height: 16),
 
-                        // Observação
                         TextFormField(
                           controller: _observacaoController,
-                          decoration: const InputDecoration(
-                            labelText: 'Observação',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.note),
-                          ),
+                          decoration: const InputDecoration(labelText: 'Observação', prefixIcon: Icon(Icons.note)),
                           maxLines: 3,
                         ),
                       ],
@@ -304,7 +251,6 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
                 ),
                 const SizedBox(height: 24),
 
-                // Botão Salvar
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -316,10 +262,7 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
                     ),
                     child: _isLoading
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            'Salvar Computador',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                          ),
+                        : const Text('Salvar Computador', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -330,4 +273,3 @@ class _CadastroComputadorScreenState extends State<CadastroComputadorScreen> {
     );
   }
 }
-

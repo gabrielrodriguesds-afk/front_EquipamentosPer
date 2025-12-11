@@ -3,6 +3,7 @@ import '../widgets/custom_app_bar.dart';
 import '../utils/app_theme.dart';
 import '../services/cliente_service.dart';
 import '../models/cliente.dart';
+import 'detalhes_cliente_screen.dart'; // Importante para a navegação
 
 class ClientesScreen extends StatefulWidget {
   const ClientesScreen({Key? key}) : super(key: key);
@@ -89,9 +90,19 @@ class _ClientesScreenState extends State<ClientesScreen> {
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () {
-          // Futuramente você pode criar uma tela de DetalhesClienteScreen
-          // Navigator.pushNamed(context, '/detalhes-cliente', arguments: cliente);
+        onTap: () async {
+          // NAVEGAÇÃO PARA DETALHES
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => DetalhesClienteScreen(cliente: cliente),
+            ),
+          );
+
+          // Se excluiu ou editou, recarrega a lista
+          if (result != null) {
+            _recarregarClientes();
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -164,9 +175,7 @@ class _ClientesScreenState extends State<ClientesScreen> {
                 ),
               ),
               
-              // Seta ou menu de ações
-              // Se quiser menu de editar/excluir, pode adicionar aqui
-              // Icon(Icons.more_vert, color: Colors.grey),
+              const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
             ],
           ),
         ),

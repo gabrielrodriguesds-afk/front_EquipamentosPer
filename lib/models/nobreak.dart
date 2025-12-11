@@ -110,7 +110,7 @@ class Nobreak {
       'modelo_bateria': modeloBateria,
       'quantidade_baterias': quantidadeBaterias,
       'setor': setor,
-      'observacoes': observacao,
+      'observacao': observacao,
       'foto_url': fotoUrl,
     };
   }

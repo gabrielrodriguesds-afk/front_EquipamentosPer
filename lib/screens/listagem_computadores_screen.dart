@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/custom_app_bar.dart';
 import '../utils/app_theme.dart';
-import '../services/computador_service.dart'; // Certifique-se que este arquivo existe
-import '../models/computador.dart'; // Certifique-se que este arquivo existe
+import '../services/computador_service.dart';
+import '../models/computador.dart';
+import 'detalhes_computador_screen.dart'; // Importante para a navegação
 
 class ListagemComputadoresScreen extends StatefulWidget {
   const ListagemComputadoresScreen({Key? key}) : super(key: key);
@@ -95,13 +96,19 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
         borderRadius: BorderRadius.circular(12),
       ),
       child: InkWell(
-        onTap: () {
-           // Rota para detalhes (ajuste se o nome da rota for diferente)
-           Navigator.pushNamed(
+        onTap: () async {
+           // NAVEGAÇÃO CORRETA PARA DETALHES
+           final result = await Navigator.push(
             context,
-            '/detalhes-computador',
-            arguments: computador,
-          ).then((_) => _recarregarComputadores());
+            MaterialPageRoute(
+              builder: (context) => DetalhesComputadorScreen(computador: computador),
+            ),
+          );
+          
+          // Se result for true (deletou) ou se tiver voltado (editou), recarrega
+          if (result != null) {
+            _recarregarComputadores();
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -115,7 +122,6 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      // Pode usar outra cor para diferenciar de Nobreaks, ex: Blue
                       color: Colors.blue[700], 
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -292,8 +298,6 @@ class _ListagemComputadoresScreenState extends State<ListagemComputadoresScreen>
           ],
         ),
       ),
-      // Botão removido aqui também conforme padrão da tela anterior.
-      // Se quiser adicionar de volta, insira o floatingActionButton aqui.
     );
   }
 }
